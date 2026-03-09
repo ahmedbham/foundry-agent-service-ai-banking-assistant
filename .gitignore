@@ -13,5 +13,10 @@ headers.txt
 body.txt
 toolresult.txt
 
+# Node
+node_modules/
+.vite/
+dist/
+
 # Azure
 .azure/

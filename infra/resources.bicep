@@ -5,6 +5,7 @@ param containerRegistryName string
 param containerAppsEnvName string
 param backendAppName string
 param middleAppName string
+param frontendAppName string
 
 // ── Log Analytics ──────────────────────────────────────────────────
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
@@ -185,6 +186,52 @@ resource middleApp 'Microsoft.App/containerApps@2024-03-01' = {
   }
 }
 
+// ── Frontend Container App ───────────────────────────────────────────
+resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
+  name: frontendAppName
+  location: location
+  properties: {
+    managedEnvironmentId: containerAppsEnv.id
+    configuration: {
+      ingress: {
+        external: true
+        targetPort: 8080
+        transport: 'auto'
+        allowInsecure: false
+      }
+      registries: [
+        {
+          server: acr.properties.loginServer
+          username: acr.listCredentials().username
+          passwordSecretRef: 'acr-password'
+        }
+      ]
+      secrets: [
+        {
+          name: 'acr-password'
+          value: acr.listCredentials().passwords[0].value
+        }
+      ]
+    }
+    template: {
+      containers: [
+        {
+          name: 'frontend'
+          image: '${acr.properties.loginServer}/frontend:latest'
+          resources: {
+            cpu: json('0.25')
+            memory: '0.5Gi'
+          }
+        }
+      ]
+      scale: {
+        minReplicas: 0
+        maxReplicas: 3
+      }
+    }
+  }
+}
+
 // ── RBAC: Middle tier → Foundry (Cognitive Services User) ─────────
 resource middleToFoundryRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(middleApp.id, foundry.id, 'CognitiveServicesUser')
@@ -204,3 +251,5 @@ output middleAppId string = middleApp.id
 output middleAppUrl string = 'https://${middleApp.properties.configuration.ingress.fqdn}'
 output foundryEndpoint string = 'https://${foundryAccountName}.services.ai.azure.com/api/projects/${foundryProjectName}'
 output foundryProjectName string = foundryProjectName
+output frontendAppId string = frontendApp.id
+output frontendAppUrl string = 'https://${frontendApp.properties.configuration.ingress.fqdn}'

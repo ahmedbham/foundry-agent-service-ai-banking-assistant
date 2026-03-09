@@ -26,6 +26,9 @@ param backendAppName string = ''
 @description('Name for the middle tier Container App')
 param middleAppName string = ''
 
+@description('Name for the frontend Container App')
+param frontendAppName string = ''
+
 @description('Name for the resource group')
 param resourceGroupName string = ''
 
@@ -46,6 +49,7 @@ var _containerRegistryName = !empty(containerRegistryName) ? containerRegistryNa
 var _containerAppsEnvName = !empty(containerAppsEnvName) ? containerAppsEnvName : '${abbrs.containerAppsEnv}${resourceToken}'
 var _backendAppName = !empty(backendAppName) ? backendAppName : '${abbrs.containerApp}backend-${resourceToken}'
 var _middleAppName = !empty(middleAppName) ? middleAppName : '${abbrs.containerApp}middle-${resourceToken}'
+var _frontendAppName = !empty(frontendAppName) ? frontendAppName : '${abbrs.containerApp}frontend-${resourceToken}'
 
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: _resourceGroupName
@@ -63,6 +67,7 @@ module resources 'resources.bicep' = {
     containerAppsEnvName: _containerAppsEnvName
     backendAppName: _backendAppName
     middleAppName: _middleAppName
+    frontendAppName: _frontendAppName
   }
 }
 
@@ -75,3 +80,5 @@ output FOUNDRY_PROJECT_NAME string = resources.outputs.foundryProjectName
 output SERVICE_BACKEND_RESOURCE_ID string = resources.outputs.backendAppId
 output MIDDLE_APP_URL string = resources.outputs.middleAppUrl
 output SERVICE_MIDDLE_RESOURCE_ID string = resources.outputs.middleAppId
+output FRONTEND_APP_URL string = resources.outputs.frontendAppUrl
+output SERVICE_FRONTEND_RESOURCE_ID string = resources.outputs.frontendAppId
