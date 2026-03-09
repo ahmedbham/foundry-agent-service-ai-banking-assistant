@@ -32,6 +32,15 @@ param frontendAppName string = ''
 @description('Name for the resource group')
 param resourceGroupName string = ''
 
+@description('Backend container image name')
+param backendImageName string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+
+@description('Middle tier container image name')
+param middleImageName string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+
+@description('Frontend container image name')
+param frontendImageName string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+
 var abbrs = {
   resourceGroup: 'rg-'
   cognitiveServices: 'ai-'
@@ -68,6 +77,9 @@ module resources 'resources.bicep' = {
     backendAppName: _backendAppName
     middleAppName: _middleAppName
     frontendAppName: _frontendAppName
+    backendImageName: backendImageName
+    middleImageName: middleImageName
+    frontendImageName: frontendImageName
   }
 }
 
