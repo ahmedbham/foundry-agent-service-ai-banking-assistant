@@ -4,6 +4,7 @@ param foundryProjectName string
 param containerRegistryName string
 param containerAppsEnvName string
 param backendAppName string
+param middleAppName string
 
 // ── Log Analytics ──────────────────────────────────────────────────
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
@@ -123,9 +124,83 @@ resource backendApp 'Microsoft.App/containerApps@2024-03-01' = {
   }
 }
 
+// ── Middle Tier Container App ────────────────────────────────────────
+resource middleApp 'Microsoft.App/containerApps@2024-03-01' = {
+  name: middleAppName
+  location: location
+  identity: { type: 'SystemAssigned' }
+  properties: {
+    managedEnvironmentId: containerAppsEnv.id
+    configuration: {
+      ingress: {
+        external: true
+        targetPort: 8000
+        transport: 'auto'
+        allowInsecure: false
+      }
+      registries: [
+        {
+          server: acr.properties.loginServer
+          username: acr.listCredentials().username
+          passwordSecretRef: 'acr-password'
+        }
+      ]
+      secrets: [
+        {
+          name: 'acr-password'
+          value: acr.listCredentials().passwords[0].value
+        }
+      ]
+    }
+    template: {
+      containers: [
+        {
+          name: 'middle'
+          image: '${acr.properties.loginServer}/middle:latest'
+          resources: {
+            cpu: json('0.5')
+            memory: '1Gi'
+          }
+          env: [
+            {
+              name: 'FOUNDRY_ENDPOINT'
+              value: 'https://${foundryAccountName}.services.ai.azure.com/api/projects/${foundryProjectName}'
+            }
+            {
+              name: 'BACKEND_MCP_URL'
+              value: 'https://${backendApp.properties.configuration.ingress.fqdn}/mcp/mcp'
+            }
+            {
+              name: 'MODEL_DEPLOYMENT_NAME'
+              value: 'agent-model'
+            }
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: 0
+        maxReplicas: 3
+      }
+    }
+  }
+}
+
+// ── RBAC: Middle tier → Foundry (Cognitive Services User) ─────────
+resource middleToFoundryRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(middleApp.id, foundry.id, 'CognitiveServicesUser')
+  scope: foundry
+  properties: {
+    principalId: middleApp.identity.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')
+  }
+}
+
 output containerRegistryLoginServer string = acr.properties.loginServer
 output containerRegistryName string = acr.name
 output backendAppId string = backendApp.id
 output backendAppUrl string = 'https://${backendApp.properties.configuration.ingress.fqdn}'
+output middleAppId string = middleApp.id
+output middleAppUrl string = 'https://${middleApp.properties.configuration.ingress.fqdn}'
 output foundryEndpoint string = 'https://${foundryAccountName}.services.ai.azure.com/api/projects/${foundryProjectName}'
 output foundryProjectName string = foundryProjectName
