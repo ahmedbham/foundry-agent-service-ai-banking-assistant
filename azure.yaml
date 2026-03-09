@@ -10,3 +10,9 @@ services:
     language: python
     docker:
       path: ./Dockerfile
+  middle:
+    project: ./middle
+    host: containerapp
+    language: python
+    docker:
+      path: ./Dockerfile

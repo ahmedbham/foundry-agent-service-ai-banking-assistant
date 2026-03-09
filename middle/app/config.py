@@ -1,0 +1,6 @@
+import os
+
+
+FOUNDRY_ENDPOINT = os.environ["FOUNDRY_ENDPOINT"]
+MODEL_DEPLOYMENT_NAME = os.getenv("MODEL_DEPLOYMENT_NAME", "agent-model")
+BACKEND_MCP_URL = os.environ["BACKEND_MCP_URL"]
