@@ -7,6 +7,10 @@ param backendAppName string
 param middleAppName string
 param frontendAppName string
 
+param backendImageName string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+param middleImageName string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+param frontendImageName string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+
 // ── Log Analytics ──────────────────────────────────────────────────
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: 'log-${uniqueString(resourceGroup().id)}'
@@ -83,6 +87,9 @@ resource containerAppsEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
 resource backendApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: backendAppName
   location: location
+  tags: {
+    'azd-service-name': 'backend'
+  }
   properties: {
     managedEnvironmentId: containerAppsEnv.id
     configuration: {
@@ -110,7 +117,7 @@ resource backendApp 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [
         {
           name: 'backend'
-          image: '${acr.properties.loginServer}/backend:latest'
+          image: backendImageName
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
@@ -129,6 +136,9 @@ resource backendApp 'Microsoft.App/containerApps@2024-03-01' = {
 resource middleApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: middleAppName
   location: location
+  tags: {
+    'azd-service-name': 'middle'
+  }
   identity: { type: 'SystemAssigned' }
   properties: {
     managedEnvironmentId: containerAppsEnv.id
@@ -157,7 +167,7 @@ resource middleApp 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [
         {
           name: 'middle'
-          image: '${acr.properties.loginServer}/middle:latest'
+          image: middleImageName
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
@@ -190,6 +200,9 @@ resource middleApp 'Microsoft.App/containerApps@2024-03-01' = {
 resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: frontendAppName
   location: location
+  tags: {
+    'azd-service-name': 'frontend'
+  }
   properties: {
     managedEnvironmentId: containerAppsEnv.id
     configuration: {
@@ -217,11 +230,21 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [
         {
           name: 'frontend'
-          image: '${acr.properties.loginServer}/frontend:latest'
+          image: frontendImageName
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'
           }
+          env: [
+            {
+              name: 'MIDDLE_TIER_URL'
+              value: 'https://${middleApp.properties.configuration.ingress.fqdn}'
+            }
+            {
+              name: 'MIDDLE_TIER_HOST'
+              value: middleApp.properties.configuration.ingress.fqdn
+            }
+          ]
         }
       ]
       scale: {

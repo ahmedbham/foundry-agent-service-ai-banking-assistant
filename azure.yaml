@@ -10,15 +10,18 @@ services:
     language: python
     docker:
       path: ./Dockerfile
+      remoteBuild: true
   middle:
     project: ./middle
     host: containerapp
     language: python
     docker:
       path: ./Dockerfile
+      remoteBuild: true
   frontend:
     project: ./frontend
     host: containerapp
     language: js
     docker:
       path: ./Dockerfile
+      remoteBuild: true
