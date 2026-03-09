@@ -16,3 +16,9 @@ services:
     language: python
     docker:
       path: ./Dockerfile
+  frontend:
+    project: ./frontend
+    host: containerapp
+    language: js
+    docker:
+      path: ./Dockerfile
